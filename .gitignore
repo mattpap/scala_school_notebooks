@@ -1,0 +1,4 @@
+*.sw[opn]
+*~
+
+/.ipynb_checkpoints/

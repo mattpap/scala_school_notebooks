@@ -1,0 +1,468 @@
+This lesson covers:
+
+* "View bounds":#viewbounds ("type classes")
+* "Other Type Bounds":#otherbounds
+* "Higher kinded types & ad-hoc polymorphism":#higher
+* "F-bounded polymorphism / recursive types":#fbounded
+* "Structural types":#structural
+* "Abstract types members":#abstractmem
+* "Type erasures & manifests":#manifest
+* "Case study: Finagle":#finagle
+
+## View bounds ("type classes")
+
+Sometimes you don't need to specify that one type is equal/sub/super another, just that you could fake it with conversions. A view bound specifies a type that can be "viewed as" another. This makes sense for an operation that needs to "read" an object but doesn't modify the object.
+
+*Implicit* functions allow automatic conversion. More precisely, they allow on-demand function application when this can help satisfy type inference. e.g.:
+
+```input
+implicit def strToInt(x: String) = x.toInt
+strToInt: (x: String)Int
+```
+
+```input
+"123"
+```
+```output
+123
+```
+
+```input
+val y: Int = "123"
+```
+```output
+123
+```
+
+```input
+math.max("123", 111)
+```
+```output
+123
+```
+
+view bounds, like type bounds demand such a function exists for the given type. You specify a type bound with `<%` e.g.,
+
+```input
+class Container[A <% Int] { def addIt(x: A) = 123 + x }
+defined class Container
+```
+
+This says that *A* has to be "viewable" as *Int*. Let's try it.
+
+```input
+(new Container[String]).addIt("123")
+```
+```output
+246
+```
+
+```input
+(new Container[Int]).addIt(123)
+```
+```output
+246
+```
+
+```input
+(new Container[Float]).addIt(123.2F)
+<console>:8: error: could not find implicit value for evidence parameter of type (Float) => Int
+       (new Container[Float]).addIt(123.2)
+        ^
+```
+
+## Other type bounds
+
+Methods can enforce more complex type bounds via implicit parameters. For example, `List` supports `sum` on numeric contents but not on others. Alas, Scala's numeric types don't all share a superclass, so we can't just say `T <: Number`. Instead, to make this work, Scala's math library [defines an implicit Numeric for the appropriate types T](http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/). Then in `List`'s definition uses it:
+
+```
+sum[B >: A](implicit num: Numeric[B]): B
+```
+
+If you invoke `List(1,2).sum()`, you don't need to pass a _num_ parameter; it's set implicitly. But if you invoke `List("whoop").sum()`, it complains that it couldn't set `num`.
+
+Methods may ask for some kinds of specific "evidence" for a type without setting up strange objects as with `Numeric`. Instead, you can use of these type-relation operators:
+
+```
+|A =:= B|A must be equal to B|
+|A <:< B|A must be a subtype of B|
+|A <%< B|A must be viewable as B|
+```
+
+```input
+class Container[A](value: A) { def addIt(implicit evidence: A =:= Int) = 123 + value }
+defined class Container
+```
+
+```input
+(new Container(123)).addIt
+```
+```output
+246
+```
+
+```input
+(new Container("123")).addIt
+```
+```output
+<console>:10: error: could not find implicit value for parameter evidence: =:=[java.lang.String,Int]
+```
+
+Similarly, given our previous implicit, we can relax the constraint to viewability:
+
+```input
+class Container[A](value: A) { def addIt(implicit evidence: A <%< Int) = 123 + value }
+```
+
+```input
+(new Container("123")).addIt
+```
+```output
+246
+```
+
+### Generic programming with views
+
+In the Scala standard library, views are primarily used to implement generic functions over collections. For example, the `min` function (on `Seq[]`), uses this technique:
+
+```
+def min[B >: A](implicit cmp: Ordering[B]): A = {
+  if (isEmpty)
+    throw new UnsupportedOperationException("empty.min")
+
+  reduceLeft((x, y) => if (cmp.lteq(x, y)) x else y)
+}
+```
+
+The main advantages of this are:
+
+* Items in the collections aren't required to implement *Ordered*, but *Ordered* uses are still statically type checked.
+* You can define your own orderings without any additional library support:
+
+```input
+List(1,2,3,4).min
+```
+```output
+1
+```
+
+```input
+List(1,2,3,4).min(new Ordering[Int] { def compare(a: Int, b: Int) = b compare a })
+```
+```output
+4
+```
+
+As a sidenote, there are views in the standard library that translates *Ordered* into *Ordering* (and vice versa).
+
+```input
+trait LowPriorityOrderingImplicits {
+    implicit def ordered[A <: Ordered[A]]: Ordering[A] = new Ordering[A] {
+        def compare(x: A, y: A) = x.compare(y)
+    }
+}
+```
+
+#### Context bounds & implicitly[]
+
+Scala 2.8 introduced a shorthand for threading through & accessing implicit arguments.
+
+```input
+def foo[A](implicit x: Ordered[A]) {}
+```
+
+```input
+def foo[A : Ordered] {}
+```
+
+Implicit values may be accessed via *implicitly*
+
+```input
+implicitly[Ordering[Int]]
+```
+```output
+scala.math.Ordering$Int$@3a9291cf
+```
+
+Combined, these often result in less code, especially when threading through views.
+
+## Higher-kinded types & ad-hoc polymorphism
+
+Scala can abstract over "higher kinded" types. For example, suppose that you needed to use several types of containers for several types of data. You might define a `Container` interface that might be implemented by means of several container types: an `Option`, a `List`, etc. You want to define an interface for using values in these containers without nailing down the values' type.
+
+This is analogous to function currying. For example, whereas "unary types" have constructors like `List[A]`, meaning we have to satisfy one "level" of type variables in order to produce a concrete types (just like an uncurried function needs to be supplied by only one argument list to be invoked), a higher-kinded type needs more.
+
+```input
+trait Container[M[_]] { def put[A](x: A): M[A]; def get[A](m: M[A]): A }
+```
+
+```input
+val container = new Container[List] { def put[A](x: A) = List(x); def get[A](m: List[A]) = m.head }
+```
+```output
+$anon$1@7c8e3f75
+```
+
+```input
+container.put("hey")
+```
+```output
+List(hey)
+```
+
+```input
+container.put(123)
+```
+```output
+List(123)
+```
+
+Note that *Container* is polymorphic in a parameterized type ("container type").
+
+If we combine using containers with implicits, we get "ad-hoc" polymorphism: the ability to write generic functions over containers.
+
+```input
+trait Container[M[_]] { def put[A](x: A): M[A]; def get[A](m: M[A]): A }
+```
+
+```input
+implicit val listContainer = new Container[List] { def put[A](x: A) = List(x); def get[A](m: List[A]) = m.head }
+```
+
+```input
+implicit val optionContainer = new Container[Some] { def put[A](x: A) = Some(x); def get[A](m: Some[A]) = m.get }
+```
+
+```input
+def tupleize[M[_]: Container, A, B](fst: M[A], snd: M[B]) = {
+    val c = implicitly[Container[M]]
+    c.put(c.get(fst), c.get(snd))
+}
+```
+
+```input
+tupleize(Some(1), Some(2))
+```
+```output
+Some((1,2))
+```
+
+```input
+tupleize(List(1), List(2))
+```
+```output
+List((1,2))
+```
+
+## F-bounded polymorphism
+
+Often it's necessary to access a concrete subclass in a (generic) trait. For example, imagine you had some trait that is generic, but can be compared to a particular subclass of that trait.
+
+```
+trait Container extends Ordered[Container]
+```
+
+However, this now necessitates the compare method
+
+```
+def compare(that: Container): Int
+```
+
+And so we cannot access the concrete subtype, e.g.:
+
+```
+class MyContainer extends Container {
+    def compare(that: MyContainer): Int
+}
+```
+
+fails to compile, since we are specifying Ordered for *Container*, not the particular subtype.
+
+To reconcile this, we instead use F-bounded polymorphism.
+
+```
+trait Container[A <: Container[A]] extends Ordered[A]
+```
+
+Strange type!  But note now how Ordered is parameterized on *A*, which itself is *Container[A]*
+
+So, now
+
+```
+class MyContainer extends Container[MyContainer] {
+  def compare(that: MyContainer) = 0
+}
+```
+
+They are now ordered:
+
+```input
+List(new MyContainer, new MyContainer, new MyContainer)
+```
+```output
+List(MyContainer@30f02a6d, MyContainer@67717334, MyContainer@49428ffa)
+```
+
+```input
+List(new MyContainer, new MyContainer, new MyContainer).min
+```
+```output
+MyContainer@33dfeb30
+```
+
+Given that they are all subtypes of *Container[_]*, we can define another subclass & create a mixed list of *Container[_]*:
+
+```input
+class YourContainer extends Container[YourContainer] { def compare(that: YourContainer) = 0 }
+```
+
+```input
+List(new MyContainer, new MyContainer, new MyContainer, new YourContainer)
+```
+```output
+List(MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9)
+```
+
+Note how the resulting type is now lower-bound by *YourContainer with MyContainer*. This is the work of the type inferencer. Interestingly- this type doesn't even need to make sense, it only provides a logical greatest lower bound for the unified type of the list. What happens if we try to use *Ordered* now?
+
+```input
+(new MyContainer, new MyContainer, new MyContainer, new YourContainer).min
+```
+```output
+<console>:9: error: could not find implicit value for parameter cmp:
+  Ordering[Container[_ >: YourContainer with MyContainer <: Container[_ >: YourContainer with MyContainer <: ScalaObject]]]
+```
+
+No `Ordered[]` exists for the unified type. Too bad.
+
+## Structural types
+
+Scala has support for *structural types* -- type requirements are expressed by interface _structure_ instead of a concrete type.
+
+```input
+def foo(x: { def get: Int }) = 123 + x.get
+```
+
+```input
+foo(new { def get = 10 })
+```
+
+This can be quite nice in many situations, but the implementation uses reflection, so be performance-aware!
+
+## Abstract type members
+
+In a trait, you can leave type members abstract.
+
+```input
+trait Foo { type A; val x: A; def getX: A = x }
+```
+
+```input
+(new Foo { type A = Int; val x = 123 }).getX
+```
+```output
+123
+```
+
+```input
+(new Foo { type A = String; val x = "hey" }).getX
+hey
+```
+
+This is often a useful trick when doing dependency injection, etc.
+
+You can refer to an abstract type variable using the hash-operator:
+
+```input
+trait Foo[M[_]] { type t[A] = M[A] }
+```
+
+```input
+val x: Foo[List]#t[Int] = List(1)
+```
+```output
+List(1)
+```
+
+## Type erasures & manifests
+
+As we know, type information is lost at compile time due to _erasure_. Scala features *Manifests*, allowing us to selectively recover type information. Manifests are provided as an implicit value, generated by the compiler as needed.
+
+```input
+class MakeFoo[A](implicit manifest: Manifest[A]) { def make: A = manifest.erasure.newInstance.asInstanceOf[A] }
+```
+
+```input
+(new MakeFoo[String]).make
+```
+```output
+""
+```
+
+## Case study: Finagle
+
+See: https://github.com/twitter/finagle
+
+```input
+trait Service[-Req, +Rep] extends (Req => Future[Rep])
+
+trait Filter[-ReqIn, +RepOut, +ReqOut, -RepIn]
+  extends ((ReqIn, Service[ReqOut, RepIn]) => Future[RepOut])
+{
+  def andThen[Req2, Rep2](next: Filter[ReqOut, RepIn, Req2, Rep2]) =
+    new Filter[ReqIn, RepOut, Req2, Rep2] {
+      def apply(request: ReqIn, service: Service[Req2, Rep2]) = {
+        Filter.this.apply(request, new Service[ReqOut, RepIn] {
+          def apply(request: ReqOut): Future[RepIn] = next(request, service)
+          override def release() = service.release()
+          override def isAvailable = service.isAvailable
+        })
+      }
+    }
+
+  def andThen(service: Service[ReqOut, RepIn]) = new Service[ReqIn, RepOut] {
+    private[this] val refcounted = new RefcountedService(service)
+
+    def apply(request: ReqIn) = Filter.this.apply(request, refcounted)
+    override def release() = refcounted.release()
+    override def isAvailable = refcounted.isAvailable
+  }
+}
+```
+
+A service may authenticate requests with a filter.
+
+```input
+trait RequestWithCredentials extends Request {
+  def credentials: Credentials
+}
+
+class CredentialsFilter(credentialsParser: CredentialsParser)
+  extends Filter[Request, Response, RequestWithCredentials, Response]
+{
+  def apply(request: Request, service: Service[RequestWithCredentials, Response]): Future[Response] = {
+    val requestWithCredentials = new RequestWrapper with RequestWithCredentials {
+      val underlying = request
+      val credentials = credentialsParser(request) getOrElse NullCredentials
+    }
+
+    service(requestWithCredentials)
+  }
+}
+```
+
+Note how the underlying service requires an authenticated request, and that this is statically verified. Filters can thus be thought of as service transformers.
+
+Many filters can be composed together:
+
+```input
+val upFilter =
+  logTransaction     andThen
+  handleExceptions   andThen
+  extractCredentials andThen
+  homeUser           andThen
+  authenticate       andThen
+  route
+```
+
+Type safely!

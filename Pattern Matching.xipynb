@@ -1,0 +1,205 @@
+This lesson covers:
+
+* "Function Composition":#composition
+ * compose
+ * andThen
+* "Currying vs Partial Application":#curryvspartial
+* "PartialFunctions":#PartialFunction
+ * range and domain
+ * composition with orElse
+* "What is a case statement?":#case
+
+## Function Composition
+
+Let's make two aptly-named functions:
+
+```input
+def f(s: String) = "f(" + s + ")"
+```
+
+```input
+def g(s: String) = "g(" + s + ")"
+```
+
+### compose
+
+`compose` makes a new function that composes other functions `f(g(x))`
+
+```input
+val fComposeG = f _ compose g _
+```
+```output
+<function>
+```
+
+```input
+fComposeG("yay")
+```
+```output
+f(g(yay))
+```
+
+### andThen
+
+`andThen` is like `compose`, but calls the first function and then the second, `g(f(x))`
+
+```input
+val fAndThenG = f _ andThen g _
+```
+```output
+<function>
+```
+
+```input
+fAndThenG("yay")
+```
+```output
+g(f(yay))
+```
+
+## Currying vs Partial Application
+
+### case statements
+
+#### So just what are case statements?
+
+It's a subclass of function called a PartialFunction.
+
+#### What is a collection of multiple case statements?
+
+They are multiple PartialFunctions composed together.
+
+## Understanding PartialFunction
+
+A function works for every argument of the defined type. In other words, a function defined as (Int) => String takes any Int and returns a String.
+
+A Partial Function is only defined for certain values of the defined type. A Partial Function (Int) => String might not accept every Int.
+
+`isDefinedAt` is a method on PartialFunction that can be used to determine if the PartialFunction will accept a given argument.
+
+__Note__ `PartialFunction` is unrelated to a partially applied function that we talked about earlier.
+
+*See Also* Effective Scala has opinions about [PartialFunction](http://twitter.github.com/effectivescala/#Functional programming-Partial functions).
+
+```input
+val one: PartialFunction[Int, String] = { case 1 => "one" }
+```
+```output
+<function1>
+```
+
+```input
+one.isDefinedAt(1)
+```
+```output
+true
+```
+
+```input
+one.isDefinedAt(2)
+```
+```output
+false
+```
+
+You can apply a partial function.
+
+```input
+one(1)
+```
+```output
+one
+```
+
+PartialFunctions can be composed with something new, called orElse, that reflects whether the PartialFunction is defined over the supplied argument.
+
+```input
+val two: PartialFunction[Int, String] = { case 2 => "two" }
+```
+```output
+<function1>
+```
+
+```input
+val three: PartialFunction[Int, String] = { case 3 => "three" }
+```
+```output
+<function1>
+```
+
+```input
+val wildcard: PartialFunction[Int, String] = { case _ => "something else" }
+```
+```output
+<function1>
+```
+
+```input
+val partial = one orElse two orElse three orElse wildcard
+```
+```output
+<function1>
+```
+
+```input
+partial(5)
+```
+```output
+something else
+```
+
+```input
+partial(3)
+```
+```output
+three
+```
+
+```input
+partial(2)
+```
+```output
+two
+```
+
+```input
+partial(1)
+```
+```output
+one
+```
+
+```input
+partial(0)
+```
+```output
+something else
+```
+
+### The mystery of case.
+
+Last week we saw something curious. We saw a case statement used where a function is normally used.
+
+```input
+case class PhoneExt(name: String, ext: Int)
+```
+
+```input
+val extensions = List(PhoneExt("steve", 100), PhoneExt("robey", 200))
+```
+```output
+List(PhoneExt(steve,100), PhoneExt(robey,200))
+```
+
+```input
+extensions.filter { case PhoneExt(name, extension) => extension < 200 }
+```
+```output
+List(PhoneExt(steve,100))
+```
+
+Why does this work?
+
+filter takes a function. In this case a predicate function of (PhoneExt) => Boolean.
+
+A PartialFunction is a subtype of Function so filter can also take a PartialFunction!

@@ -1,0 +1,121 @@
+#! /usr/bin/env python
+
+import os
+import re
+import sys
+import simplejson
+
+heading = re.compile("^(#+)\s+(.+)$")
+
+MARKDOWN, INPUT, OUTPUT, STDOUT, STDERR, HEADING = 1, 2, 3, 4, 5, 6
+
+for file in sys.argv:
+    cells = []
+    with open(file, "r") as f:
+        state = MARKDOWN
+        buf = []
+        for line in f.readlines():
+            line = line.rstrip()
+            if state == MARKDOWN:
+                if line == "```input":
+                    if buf: cells.append((MARKDOWN, buf))
+                    state, buf = INPUT, []
+                elif line == "```output":
+                    if buf: cells.append((MARKDOWN, buf))
+                    state, buf = OUTPUT, []
+                elif line == "```stdout":
+                    if buf: cells.append((MARKDOWN, buf))
+                    state, buf = STDOUT, []
+                elif line == "```stderr":
+                    if buf: cells.append((MARKDOWN, buf))
+                    state, buf = STDERR, []
+                else:
+                    result = heading.match(line)
+
+                    if result is not None:
+                        if buf: cells.append((MARKDOWN, buf))
+                        cells.append((HEADING, result.groups()[1], len(result.group()[0])))
+                        buf = []
+                    else:
+                        buf.append(line)
+            elif state == INPUT:
+                if line == "```":
+                    cells.append((INPUT, buf, []))
+                    state, buf = MARKDOWN, []
+                else:
+                    buf.append(line)
+            elif state in [OUTPUT, STDOUT, STDERR]:
+                if line == "```":
+                    prev = cells[-1]
+                    if prev[0] == INPUT:
+                        cells[-1][2].append((state, buf))
+                    else:
+                        raise ValueError("dangling output")
+                    state, buf = MARKDOWN, []
+                else:
+                    buf.append(line)
+            else:
+                raise ValueError("invalid state")
+
+    json_cells = []
+
+    for cell in cells:
+        if cell[0] == HEADING:
+            json_cells.append({
+                "cell_type": "heading",
+                "source": [cell[1]],
+                "level": cell[2],
+            })
+        elif cell[0] == MARKDOWN:
+            source = cell[1]
+            while source and source[0] == "":
+                del source[0]
+            while source and source[-1] == "":
+                del source[-1]
+            if source:
+                json_cells.append({
+                    "cell_type": "markdown",
+                    "source": source,
+                })
+        elif cell[0] == INPUT:
+            outputs = []
+            for (out_type, out) in cell[2]:
+                if out_type == OUTPUT:
+                    outputs.append({
+                        "output_type": "pyout",
+                        "text": out,
+                    })
+                else:
+                    if out_type == STDOUT:
+                        stream = "pyout"
+                    elif out_type == STDERR:
+                        stream = "pyerr"
+                        outputs.append({
+                            "output_type": "stream",
+                            "stream": stream,
+                            "text": out,
+                        })
+
+            json_cells.append({
+                "cell_type": "code",
+                "input": cell[1],
+                "outputs": outputs,
+                "collapsed": False,
+            })
+        else:
+            raise ValueError("invalid cell type")
+
+    json = {
+        "metadata": {},
+        "nbformat": 3,
+        "nbformat_minor": 0,
+        "worksheets": [{
+            "metadata": {},
+            "cells": json_cells,
+        }],
+    }
+
+    out = os.path.splitext(os.path.basename(file))[0] + ".ipynb"
+
+    with open(out, "w") as f:
+        f.write(simplejson.dumps(json, indent=2))
