@@ -10,6 +10,8 @@ heading = re.compile("^(#+)\s+(.+)$")
 MARKDOWN, INPUT, OUTPUT, STDOUT, STDERR, HEADING = 1, 2, 3, 4, 5, 6
 
 for file in sys.argv:
+    if os.path.splitext(file)[1] != ".xipynb":
+        continue
     cells = []
     with open(file, "r") as f:
         state = MARKDOWN
