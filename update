@@ -3,7 +3,7 @@
 ./xipynb
 git checkout gh-pages
 cp -r output/* .
-git add *.ipynb *.html
+git add .
 git commit -a -m "Update"
 git push origin gh-pages
 git checkout master
