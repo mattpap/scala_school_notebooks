@@ -7,10 +7,13 @@ import subprocess
 import simplejson
 
 heading = re.compile("^(#+)\s+(.+)$")
+outdir = "output"
 
 MARKDOWN, INPUT, OUTPUT, STDOUT, STDERR, HEADING = 1, 2, 3, 4, 5, 6
 
-for file in sys.argv:
+files = sys.argv[1:] or os.listdir(".")
+
+for file in files:
     if os.path.splitext(file)[1] != ".xipynb":
         continue
     cells = []
@@ -108,8 +111,11 @@ for file in sys.argv:
         else:
             raise ValueError("invalid cell type")
 
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
     name, _ = os.path.splitext(os.path.basename(file))
-    out = name + ".ipynb"
+    ipynb = os.path.join(outdir, name + ".ipynb")
 
     json = {
         "metadata": {
@@ -123,8 +129,8 @@ for file in sys.argv:
         }],
     }
 
-    with open(out, "w") as f:
-        print "Writing %s" % out
+    with open(ipynb, "w") as f:
+        print "Writing %s" % ipynb
         f.write(simplejson.dumps(json, indent=2))
 
-    subprocess.call(["ipython", "nbconvert", "--to", "html", out])
+    subprocess.call(["ipython", "nbconvert", "--to", "html", "--output", os.path.join(outdir, name), ipynb])
