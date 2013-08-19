@@ -1,12 +1,12 @@
 This lesson covers:
 
-* "What are static types?":#background
-* "Types in Scala":#scala
-* "Parametric Polymorphism":#parametricpoly
-* "Type inference: Hindley-Milner vs. local type inference":#inference
-* "Variance":#variance
-* "Bounds":#bounds
-* "Quantification":#quantification
+* What are static types?
+* Types in Scala
+* Parametric Polymorphism
+* Type inference: Hindley-Milner vs. local type inference
+* Variance
+* Bounds
+* Quantification
 
 ## What are static types? Why are they useful?
 

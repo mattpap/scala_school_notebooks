@@ -1,13 +1,13 @@
 This lesson covers:
 
-* "View bounds":#viewbounds ("type classes")
-* "Other Type Bounds":#otherbounds
-* "Higher kinded types & ad-hoc polymorphism":#higher
-* "F-bounded polymorphism / recursive types":#fbounded
-* "Structural types":#structural
-* "Abstract types members":#abstractmem
-* "Type erasures & manifests":#manifest
-* "Case study: Finagle":#finagle
+* View bounds
+* Other Type Bounds
+* Higher kinded types & ad-hoc polymorphism
+* F-bounded polymorphism / recursive types
+* Structural types
+* Abstract types members
+* Type erasures & manifests
+* Case study: Finagle
 
 ## View bounds ("type classes")
 

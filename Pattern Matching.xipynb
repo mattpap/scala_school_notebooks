@@ -1,13 +1,13 @@
 This lesson covers:
 
-* "Function Composition":#composition
+* Function Composition
  * compose
  * andThen
-* "Currying vs Partial Application":#curryvspartial
-* "PartialFunctions":#PartialFunction
+* Currying vs Partial Application
+* PartialFunctions
  * range and domain
  * composition with orElse
-* "What is a case statement?":#case
+* What is a case statement?
 
 ## Function Composition
 

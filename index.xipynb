@@ -1,0 +1,29 @@
+# From &empty; to Distributed Service
+
+## About
+
+Scala school started as a series of lectures at Twitter to prepare experienced engineers to be productive [Scala](http://www.scala-lang.org/) programmers. Scala is a relatively new language, but draws on many familiar concepts. Thus, these lectures assumed the audience knew the concepts and showed how to use them in Scala. We found this an effective way of getting new engineers up to speed quickly. This is the written material that accompanied those lectures. We have found that these are useful in their own right.
+
+## Approach
+
+We think it makes the most sense to approach teaching Scala not as if it were an improved Java but instead as a new language. Experience in Java is not expected. Focus will be on the interpreter and the object-functional style as well as the style of programming we do here. An emphasis will be placed on maintainability, clarity of expression, and leveraging the type system.
+
+Most of the lessons require no software other than a Scala REPL. The reader is encouraged to follow along, but also to go further! Use these lessons as a starting point to explore the language.
+
+## Also
+
+You can learn more elsewhere:
+
+* [Effective Scala](http://twitter.github.com/effectivescala/) Twitter's "best practices" for Scala. Useful for understanding idioms in Twitter's code.
+* [scala-lang.org Documentation](http://www.scala-lang.org/node/197) Links to tutorials, manuals, API reference, books, ...
+* [Scala API Documentation](http://www.scala-lang.org/api/)
+
+# Lessons
+
+* [Basics](Basics.html) &mdash; Values, functions, classes, methods, inheritance, try-catch-finally. Expression-oriented programming
+* [Basics Continued](Basics Continued.html) &mdash; Case classes, objects, packages, apply, update, Functions are Objects (uniform access principle), pattern matching.
+* [Collections](Collections.html) &mdash; Lists, Maps, functional combinators (map, foreach, filter, zip, folds)
+* [Pattern Matching & Functional Composition](Pattern Matching.html) &mdash; More functions! PartialFunctions, more Pattern Matching
+* [Type & Polymorphism Basics](Type Basics) &mdash; Basic Types and type polymorphism, type inference, variance, bounds, quantification
+* [Advanced Types](Advanced Types.html) &mdash; Advanced Types, view bounds, higher-kinded types, recursive types, structural types
+* [More Collections](Advanced Collections.html) &mdash; Tour of the Scala Collections library
