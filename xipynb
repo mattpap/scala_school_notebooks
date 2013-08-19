@@ -63,6 +63,11 @@ for file in files:
             else:
                 raise ValueError("invalid state")
 
+    if state == MARKDOWN:
+        if buf: cells.append((MARKDOWN, buf))
+    else:
+        raise ValueError("unclosed %s section" % state)
+
     json_cells = []
 
     for cell in cells:
