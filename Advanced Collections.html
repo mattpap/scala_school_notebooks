@@ -2723,5 +2723,20 @@ In&nbsp;[]:
 </div>
 
 </div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Two-way conversions:</p>
+<pre><code>scala.collection.Iterable &lt;=&gt; java.lang.Iterable
+scala.collection.Iterable &lt;=&gt; java.util.Collection
+scala.collection.Iterator &lt;=&gt; java.util.{ Iterator, Enumeration }
+scala.collection.mutable.Buffer &lt;=&gt; java.util.List
+scala.collection.mutable.Set &lt;=&gt; java.util.Set
+scala.collection.mutable.Map &lt;=&gt; java.util.{ Map, Dictionary }
+scala.collection.mutable.ConcurrentMap &lt;=&gt; java.util.concurrent.ConcurrentMap</code></pre>
+<p>In addition, the following one way conversions are provided:</p>
+<pre><code>scala.collection.Seq =&gt; java.util.List
+scala.collection.mutable.Seq =&gt; java.util.List
+scala.collection.Set =&gt; java.util.Set
+scala.collection.Map =&gt; java.util.Map</code></pre>
+</div>
 </body>
 </html>

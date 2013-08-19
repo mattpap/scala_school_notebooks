@@ -2485,5 +2485,27 @@ In&nbsp;[]:
 <h1 id="Exceptions">Exceptions<a class="anchor-link" href="#Exceptions">&#182;</a></h1>
 </div>
 
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Exceptions are available in Scala via a try-catch-finally syntax that uses pattern matching.</p>
+<pre><code>try {
+    remoteCalculatorService.add(1, 2)
+} catch {
+    case e: ServerIsDownException =&gt; log.error(e, &quot;the remote calculator service is unavailable. should have kept your trusty HP.&quot;)
+} finally {
+    remoteCalculatorService.close()
+}</code></pre>
+<p><code>try</code>s are also expression-oriented</p>
+<pre><code>val result: Int = try {
+    remoteCalculatorService.add(1, 2)
+} catch {
+    case e: ServerIsDownException =&gt;
+        log.error(e, &quot;the remote calculator service is unavailable. should have kept your trusty HP.&quot;)
+        0
+} finally {
+    remoteCalculatorService.close()
+}</code></pre>
+<p>This is not an example of excellent programming style, just an example of try-catch-finally resulting in expressions like most everything else in Scala.</p>
+<p>Finally will be called after an exception has been handled and is not part of the expression.</p>
+</div>
 </body>
 </html>
